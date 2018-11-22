@@ -11,6 +11,8 @@ namespace Gluh.TechnicalTest.Models
         public int Quantity { get; set; }
         public decimal ProductCost { get; set; }                
         public decimal ShippingCost { get; set; }
+        public decimal ShippingCostMinOrderValue { get; set; }
+        public decimal ShippingCostMaxOrderValue { get; set; }
         public decimal TotalProductCost
         {
             get
@@ -22,7 +24,11 @@ namespace Gluh.TechnicalTest.Models
         {
             get
             {
-                return ShippingCost * Quantity;
+                if(TotalProductCost >= ShippingCostMinOrderValue && TotalProductCost <= ShippingCostMaxOrderValue)
+                {
+                    return ShippingCost * Quantity;
+                }
+                return 0;
             }
         }
         public decimal TotalCost
