@@ -13,6 +13,7 @@ namespace Gluh.TechnicalTest.Models
         public decimal ShippingCost { get; set; }
         public decimal ShippingCostMinOrderValue { get; set; }
         public decimal ShippingCostMaxOrderValue { get; set; }
+        public ProductType Type { get; set; }
         public decimal TotalProductCost
         {
             get
@@ -24,7 +25,7 @@ namespace Gluh.TechnicalTest.Models
         {
             get
             {
-                if(TotalProductCost >= ShippingCostMinOrderValue && TotalProductCost <= ShippingCostMaxOrderValue)
+                if((TotalProductCost >= ShippingCostMinOrderValue && TotalProductCost <= ShippingCostMaxOrderValue) && Type == ProductType.Physical)
                 {
                     return ShippingCost * Quantity;
                 }
@@ -38,5 +39,5 @@ namespace Gluh.TechnicalTest.Models
                 return TotalProductCost + TotalShippingCost;
             }
         }
-    }
+    }    
 }
