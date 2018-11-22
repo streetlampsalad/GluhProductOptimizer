@@ -65,8 +65,8 @@ namespace Gluh.TechnicalTest.Tests
             };
 
             var result = _purchaseOptimizer.Optimize(_testData);
-
-            Assert.AreEqual(1, result.Count());
+            
+            Assert.AreEqual(1, result.Count());            
             Assert.AreEqual("_testProduct", result[0].Product.Name);
             Assert.AreEqual(1, result[0].PurchaseOrders.Count());
             Assert.AreEqual("_testSupplier", result[0].PurchaseOrders[0].Supplier.Name);
@@ -131,14 +131,91 @@ namespace Gluh.TechnicalTest.Tests
             };
 
             var result = _purchaseOptimizer.Optimize(_testData);
-
-            Assert.AreEqual(1, result.Count());
+            
+            Assert.AreEqual(1, result.Count());            
             Assert.AreEqual("_testProduct", result[0].Product.Name);
             Assert.AreEqual(2, result[0].PurchaseOrders.Count());
             Assert.AreEqual("_testSupplier", result[0].PurchaseOrders[0].Supplier.Name);
             Assert.AreEqual(5, result[0].PurchaseOrders[0].Quantity);            
             Assert.AreEqual("_testSupplier2", result[0].PurchaseOrders[1].Supplier.Name);
             Assert.AreEqual(10, result[0].PurchaseOrders[1].Quantity);
+        }
+
+        [Test]
+        public void Optimize_2Product1Supplier()
+        {
+            var _testSupplier = new Supplier
+            {
+                ID = 1,
+                Name = "_testSupplier",
+                ShippingCost = 0,
+                ShippingCostMinOrderValue = 0,
+                ShippingCostMaxOrderValue = 0
+            };
+
+            var _testProduct = new Product
+            {
+                ID = 1,
+                Name = "_testProduct",
+                Type = ProductType.Physical
+            };
+
+            var _testProduct2 = new Product
+            {
+                ID = 2,
+                Name = "_testProduct2",
+                Type = ProductType.NonPhysical
+            };
+
+            _testProduct.Stock = new List<ProductStock>
+            {
+                new ProductStock
+                {
+                    ID = 1,
+                    Cost = 940.56m,
+                    StockOnHand = 105,
+                    Supplier = _testSupplier,
+                    Product = _testProduct
+                }
+            };
+
+            _testProduct2.Stock = new List<ProductStock>
+            {
+                new ProductStock
+                {
+                    ID = 2,
+                    Cost = 555.56m,
+                    StockOnHand = 88,
+                    Supplier = _testSupplier,
+                    Product = _testProduct2
+                }
+            };
+
+            var _testData = new List<PurchaseRequirement>
+            {
+                new PurchaseRequirement
+                {
+                    Product = _testProduct,
+                    Quantity = 10
+                },
+                new PurchaseRequirement
+                {
+                    Product = _testProduct2,
+                    Quantity = 15
+                }
+            };
+
+            var result = _purchaseOptimizer.Optimize(_testData);
+            
+            Assert.AreEqual(2, result.Count());            
+            Assert.AreEqual("_testProduct", result[0].Product.Name);
+            Assert.AreEqual(1, result[0].PurchaseOrders.Count());
+            Assert.AreEqual("_testSupplier", result[0].PurchaseOrders[0].Supplier.Name);
+            Assert.AreEqual(10, result[0].PurchaseOrders[0].Quantity);            
+            Assert.AreEqual("_testProduct2", result[1].Product.Name);
+            Assert.AreEqual(1, result[1].PurchaseOrders.Count());
+            Assert.AreEqual("_testSupplier", result[1].PurchaseOrders[0].Supplier.Name);
+            Assert.AreEqual(15, result[1].PurchaseOrders[0].Quantity);
         }
 
         [Test]
