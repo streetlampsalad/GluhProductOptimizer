@@ -14,17 +14,18 @@ namespace Gluh.TechnicalTest.Models
         {
             get
             {
-                return PurchaseOrders.Sum(x => x.ProductCost);
+                return PurchaseOrders.Sum(x => x.TotalProductCost);
             }
         }
         public decimal TotalShippingCost
         {
             get
             {
-                return PurchaseOrders.Sum(x => x.ShippingCost);
+                return PurchaseOrders.Sum(x => x.TotalShippingCost);
             }
         }
-        public decimal TotalCost { 
+        public decimal TotalCost 
+        { 
             get {
                 return TotalProductCost + TotalShippingCost;
             } 

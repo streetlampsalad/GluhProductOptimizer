@@ -7,7 +7,9 @@ using System.Linq;
 
 namespace Gluh.TechnicalTest
 {
-    //Assumption: This method just optimizes the order, it does not need to reduce or reserve the stockOnHand quantity
+    // Assumptions:
+    // This method just optimizes the order, it does not need to manipulate the stockOnHand quantity
+    // The shipping cost is per unit not the entire order
     public class PurchaseOptimizer
     {        
         /// <summary>
@@ -21,65 +23,94 @@ namespace Gluh.TechnicalTest
                 throw new ArgumentException("Purchase requirements cannot be empty");
             }
 
-            return CreatePurchaseOrders(purchaseRequirements, new List<ProductPurchaseOrder>());
+            return CreateProductPurchaseOrders(purchaseRequirements, new List<ProductPurchaseOrder>());
         }
 
-        private List<ProductPurchaseOrder> CreatePurchaseOrders(List<PurchaseRequirement> purchaseRequirements, List<ProductPurchaseOrder> currentOrders)
+        private List<ProductPurchaseOrder> CreateProductPurchaseOrders(List<PurchaseRequirement> purchaseRequirements, List<ProductPurchaseOrder> currentProductOrders)
         {
             if(!purchaseRequirements.Any())
             {
-                return currentOrders;
+                return currentProductOrders;
             }
 
             var purchaseRequirement = purchaseRequirements.First();
             purchaseRequirement.Product.Stock = purchaseRequirement.Product.Stock.OrderBy(x => x.Cost).ToList();
 
-            var currentOrder = new ProductPurchaseOrder
+            var currentProductOrder = new ProductPurchaseOrder
             {
                 Product = purchaseRequirement.Product,
                 PurchaseOrders = new List<PurchaseOrder>()
             };
 
-            currentOrders.Add(CreatePurchaseOrders(purchaseRequirement, currentOrder));
+            currentProductOrders.Add(CreateProductPurchaseOrder(purchaseRequirement, currentProductOrder));
 
             purchaseRequirements.Remove(purchaseRequirement);
-            return CreatePurchaseOrders(purchaseRequirements, currentOrders);                        
+            return CreateProductPurchaseOrders(purchaseRequirements, currentProductOrders);                        
         }
 
-        private ProductPurchaseOrder CreatePurchaseOrders(PurchaseRequirement purchaseRequirement, ProductPurchaseOrder currentOrder)
+        private ProductPurchaseOrder CreateProductPurchaseOrder(PurchaseRequirement purchaseRequirement, ProductPurchaseOrder currentProductOrder)
         {
-            if(!purchaseRequirement.Product.Stock.Any() || purchaseRequirement.Quantity == 0)
+            if(!purchaseRequirement.Product.Stock.Any())
             {
-                return currentOrder;
+                return FilterPurchaseOrders(purchaseRequirement, currentProductOrder);
             }            
 
             var stock = purchaseRequirement.Product.Stock.First();
 
             if(stock.StockOnHand >= purchaseRequirement.Quantity)
             {
-                currentOrder.PurchaseOrders.Add(new PurchaseOrder
+                currentProductOrder.PurchaseOrders.Add(new PurchaseOrder
                 {                    
                     Supplier = stock.Supplier,
                     Quantity = purchaseRequirement.Quantity,
-                    ProductCost = stock.Cost * purchaseRequirement.Quantity,
-                    ShippingCost = 0
-                });
+                    ProductCost = stock.Cost,
+                    ShippingCost = stock.Supplier.ShippingCost
+                });                
             }
             else if(stock.StockOnHand > 0)
             {
-                currentOrder.PurchaseOrders.Add(new PurchaseOrder
+                currentProductOrder.PurchaseOrders.Add(new PurchaseOrder
                 {                    
                     Supplier = stock.Supplier,
                     Quantity = stock.StockOnHand,
-                    ProductCost = stock.Cost * purchaseRequirement.Quantity,
-                    ShippingCost = 0
-                });
-
-                purchaseRequirement.Quantity -= stock.StockOnHand;
+                    ProductCost = stock.Cost,
+                    ShippingCost = stock.Supplier.ShippingCost
+                });                
             }
             
             purchaseRequirement.Product.Stock.Remove(stock);
-            return CreatePurchaseOrders(purchaseRequirement, currentOrder);
+            return CreateProductPurchaseOrder(purchaseRequirement, currentProductOrder);
+        }
+
+        private ProductPurchaseOrder FilterPurchaseOrders(PurchaseRequirement purchaseRequirement, ProductPurchaseOrder currentProductOrder) 
+        {
+            var filteredOrders = new List<PurchaseOrder>();
+            currentProductOrder.PurchaseOrders = currentProductOrder.PurchaseOrders.OrderBy(x => x.TotalCost).ToList();
+
+            foreach(var currentOrder in currentProductOrder.PurchaseOrders)
+            {                
+                if(currentOrder.Quantity == purchaseRequirement.Quantity)
+                {
+                    filteredOrders.Add(currentOrder);
+                    currentProductOrder.PurchaseOrders = filteredOrders;
+                    return currentProductOrder;
+                }
+                else if(currentOrder.Quantity < purchaseRequirement.Quantity)
+                {
+                    filteredOrders.Add(currentOrder);
+                    purchaseRequirement.Quantity -= currentOrder.Quantity;
+                }
+                else if(currentOrder.Quantity > purchaseRequirement.Quantity)
+                {
+                    currentOrder.Quantity = purchaseRequirement.Quantity;
+                    filteredOrders.Add(currentOrder);
+                    currentProductOrder.PurchaseOrders = filteredOrders;
+                    return currentProductOrder;
+                }
+            }
+
+            currentProductOrder.PurchaseOrders = filteredOrders;
+            return currentProductOrder;
         }
     }
 }
