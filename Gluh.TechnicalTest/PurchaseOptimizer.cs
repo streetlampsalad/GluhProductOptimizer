@@ -14,17 +14,17 @@ namespace Gluh.TechnicalTest
         /// Calculates the optimal set of supplier to purchase products from.
         /// ### Complete this method
         /// </summary>
-        public List<PurchaseOrder> Optimize(List<PurchaseRequirement> purchaseRequirements)
+        public List<ProductPurchaseOrder> Optimize(List<PurchaseRequirement> purchaseRequirements)
         {
             if(!purchaseRequirements.Any())
             {
                 throw new ArgumentException("Purchase requirements cannot be empty");
             }
 
-            return CreatePurchaseOrders(purchaseRequirements, new List<PurchaseOrder>());
+            return CreatePurchaseOrders(purchaseRequirements, new List<ProductPurchaseOrder>());
         }
 
-        private List<PurchaseOrder> CreatePurchaseOrders(List<PurchaseRequirement> purchaseRequirements, List<PurchaseOrder> currentOrders)
+        private List<ProductPurchaseOrder> CreatePurchaseOrders(List<PurchaseRequirement> purchaseRequirements, List<ProductPurchaseOrder> currentOrders)
         {
             if(!purchaseRequirements.Any())
             {
@@ -32,45 +32,54 @@ namespace Gluh.TechnicalTest
             }
 
             var purchaseRequirement = purchaseRequirements.First();
+            purchaseRequirement.Product.Stock = purchaseRequirement.Product.Stock.OrderBy(x => x.Cost).ToList();
 
-            currentOrders = CreatePurchaseOrders(purchaseRequirement, currentOrders);
+            var currentOrder = new ProductPurchaseOrder
+            {
+                Product = purchaseRequirement.Product,
+                PurchaseOrders = new List<PurchaseOrder>()
+            };
+
+            currentOrders.Add(CreatePurchaseOrders(purchaseRequirement, currentOrder));
 
             purchaseRequirements.Remove(purchaseRequirement);
             return CreatePurchaseOrders(purchaseRequirements, currentOrders);                        
         }
 
-        private List<PurchaseOrder> CreatePurchaseOrders(PurchaseRequirement purchaseRequirement, List<PurchaseOrder> currentOrders)
+        private ProductPurchaseOrder CreatePurchaseOrders(PurchaseRequirement purchaseRequirement, ProductPurchaseOrder currentOrder)
         {
             if(!purchaseRequirement.Product.Stock.Any() || purchaseRequirement.Quantity == 0)
             {
-                return currentOrders;
-            }
+                return currentOrder;
+            }            
 
             var stock = purchaseRequirement.Product.Stock.First();
 
             if(stock.StockOnHand >= purchaseRequirement.Quantity)
             {
-                currentOrders.Add(new PurchaseOrder
-                {
-                    Product = purchaseRequirement.Product,
+                currentOrder.PurchaseOrders.Add(new PurchaseOrder
+                {                    
                     Supplier = stock.Supplier,
-                    Quantity = purchaseRequirement.Quantity
+                    Quantity = purchaseRequirement.Quantity,
+                    ProductCost = stock.Cost * purchaseRequirement.Quantity,
+                    ShippingCost = 0
                 });
             }
             else if(stock.StockOnHand > 0)
             {
-                currentOrders.Add(new PurchaseOrder
-                {
-                    Product = purchaseRequirement.Product,
+                currentOrder.PurchaseOrders.Add(new PurchaseOrder
+                {                    
                     Supplier = stock.Supplier,
-                    Quantity = stock.StockOnHand
+                    Quantity = stock.StockOnHand,
+                    ProductCost = stock.Cost * purchaseRequirement.Quantity,
+                    ShippingCost = 0
                 });
 
                 purchaseRequirement.Quantity -= stock.StockOnHand;
             }
-
+            
             purchaseRequirement.Product.Stock.Remove(stock);
-            return CreatePurchaseOrders(purchaseRequirement, currentOrders);
+            return CreatePurchaseOrders(purchaseRequirement, currentOrder);
         }
     }
 }
